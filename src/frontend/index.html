@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NanoFleet Tasks</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      color: #171717;
+      background: #fafafa;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    #header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      height: 52px;
+      border-bottom: 1px solid #e5e5e5;
+      background: #fff;
+      flex-shrink: 0;
+    }
+    #header h1 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #171717;
+    }
+    #header .subtitle {
+      font-size: 12px;
+      color: #737373;
+      margin-left: 8px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: background 0.15s;
+    }
+    .btn-primary {
+      background: #171717;
+      color: #fff;
+    }
+    .btn-primary:hover { background: #404040; }
+    .btn-secondary {
+      background: #f5f5f5;
+      color: #171717;
+      border: 1px solid #e5e5e5;
+    }
+    .btn-secondary:hover { background: #e5e5e5; }
+    .btn-danger {
+      background: #fee2e2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+    .btn-danger:hover { background: #fecaca; }
+    .btn-success {
+      background: #dcfce7;
+      color: #15803d;
+      border: 1px solid #bbf7d0;
+    }
+    .btn-success:hover { background: #bbf7d0; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Board ── */
+    #board {
+      display: flex;
+      gap: 12px;
+      padding: 16px;
+      flex: 1;
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+
+    .column {
+      display: flex;
+      flex-direction: column;
+      width: 260px;
+      min-width: 260px;
+      background: #f5f5f5;
+      border-radius: 10px;
+      border: 1px solid #e5e5e5;
+      overflow: hidden;
+    }
+
+    .column-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-bottom: 1px solid #e5e5e5;
+      background: #fff;
+    }
+
+    .column-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #525252;
+    }
+
+    .column-count {
+      font-size: 11px;
+      font-weight: 600;
+      background: #e5e5e5;
+      color: #525252;
+      border-radius: 999px;
+      padding: 1px 7px;
+    }
+
+    .column-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* ── Task Card ── */
+    .card {
+      background: #fff;
+      border: 1px solid #e5e5e5;
+      border-radius: 8px;
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: box-shadow 0.15s, border-color 0.15s;
+    }
+    .card:hover {
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+      border-color: #d4d4d4;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: #171717;
+      margin-bottom: 6px;
+      line-height: 1.4;
+    }
+
+    .card-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .assignees {
+      display: flex;
+      gap: 3px;
+      flex-wrap: wrap;
+    }
+
+    .avatar {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #171717;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-transform: uppercase;
+    }
+
+    .avatar.avatar-sm {
+      width: 18px;
+      height: 18px;
+      font-size: 9px;
+    }
+
+    .status-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .status-todo { background: #f5f5f5; color: #737373; }
+    .status-in_progress { background: #fef9c3; color: #854d0e; }
+    .status-review { background: #e0e7ff; color: #3730a3; }
+    .status-done { background: #dcfce7; color: #15803d; }
+
+    /* ── Panel ── */
+    #panel-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.25);
+      z-index: 30;
+    }
+    #panel-overlay.open { display: block; }
+
+    #panel {
+      position: fixed;
+      top: 0;
+      right: -480px;
+      width: 480px;
+      max-width: 100vw;
+      height: 100%;
+      background: #fff;
+      border-left: 1px solid #e5e5e5;
+      z-index: 40;
+      display: flex;
+      flex-direction: column;
+      transition: right 0.2s ease;
+      overflow: hidden;
+    }
+    #panel.open { right: 0; }
+
+    #panel-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid #e5e5e5;
+      flex-shrink: 0;
+    }
+
+    #panel-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #171717;
+      line-height: 1.3;
+      flex: 1;
+      margin-right: 12px;
+    }
+
+    #panel-close {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #a3a3a3;
+      font-size: 18px;
+      line-height: 1;
+      padding: 2px;
+      flex-shrink: 0;
+    }
+    #panel-close:hover { color: #171717; }
+
+    #panel-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .panel-section-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #a3a3a3;
+      margin-bottom: 6px;
+    }
+
+    .panel-description {
+      font-size: 13px;
+      color: #525252;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    .panel-assignees {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .panel-assignee {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #f5f5f5;
+      border-radius: 6px;
+      padding: 4px 10px 4px 6px;
+    }
+    .panel-assignee-name {
+      font-size: 12px;
+      font-weight: 500;
+      color: #525252;
+    }
+
+    .result-block {
+      background: #f5f5f5;
+      border-radius: 8px;
+      padding: 10px 12px;
+      border: 1px solid #e5e5e5;
+    }
+    .result-block-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .result-agent-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: #525252;
+    }
+    .result-content {
+      font-size: 12px;
+      color: #404040;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .result-file {
+      font-size: 11px;
+      color: #737373;
+      margin-top: 4px;
+      font-family: monospace;
+    }
+
+    .comment {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .comment-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .comment-author {
+      font-size: 11px;
+      font-weight: 600;
+      color: #525252;
+    }
+    .comment-time {
+      font-size: 10px;
+      color: #a3a3a3;
+    }
+    .comment-content {
+      font-size: 12px;
+      color: #404040;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .comment.system .comment-content { color: #a3a3a3; font-style: italic; }
+
+    .comment-form {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .comment-form textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #e5e5e5;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 60px;
+      color: #171717;
+      background: #fff;
+    }
+    .comment-form textarea:focus {
+      outline: none;
+      border-color: #a3a3a3;
+    }
+    .comment-form-actions {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .review-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .review-actions-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #15803d;
+    }
+    .review-feedback-label {
+      font-size: 12px;
+      color: #525252;
+      margin-top: 4px;
+    }
+    .review-feedback-input {
+      width: 100%;
+      padding: 7px 10px;
+      border: 1px solid #e5e5e5;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: inherit;
+      color: #171717;
+    }
+    .review-feedback-input:focus { outline: none; border-color: #a3a3a3; }
+    .review-btns {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* ── Modal ── */
+    #modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.4);
+      z-index: 50;
+      align-items: center;
+      justify-content: center;
+    }
+    #modal-overlay.open { display: flex; }
+    #modal {
+      background: #fff;
+      border-radius: 12px;
+      padding: 24px;
+      width: 440px;
+      max-width: calc(100vw - 32px);
+      box-shadow: 0 20px 60px rgba(0,0,0,.2);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    #modal h2 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #171717;
+    }
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .form-field label {
+      font-size: 12px;
+      font-weight: 500;
+      color: #525252;
+    }
+    .form-field input,
+    .form-field textarea,
+    .form-field select {
+      padding: 8px 10px;
+      border: 1px solid #e5e5e5;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: inherit;
+      color: #171717;
+    }
+    .form-field input:focus,
+    .form-field textarea:focus { outline: none; border-color: #a3a3a3; }
+    .form-field textarea { resize: vertical; min-height: 70px; }
+
+    .agent-checkboxes {
+      max-height: 150px;
+      overflow-y: auto;
+      border: 1px solid #e5e5e5;
+      border-radius: 6px;
+      background: #fff;
+    }
+    .agent-checkbox {
+      display: flex;
+      align-items: center;
+      padding: 7px 10px;
+      font-size: 13px;
+      cursor: pointer;
+      border-bottom: 1px solid #f5f5f5;
+    }
+    .agent-checkbox:last-child { border-bottom: none; }
+    .agent-checkbox:hover { background: #fafafa; }
+    .agent-checkbox input[type="checkbox"] { cursor: pointer; flex-shrink: 0; margin-right: 8px; }
+    .agent-checkbox span {
+      font-size: 13px;
+      color: #171717;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .empty-col {
+      text-align: center;
+      color: #a3a3a3;
+      font-size: 12px;
+      padding: 20px 0;
+    }
+
+    #delete-task-btn {
+      margin-top: auto;
+      align-self: flex-start;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<div id="header">
+  <div style="display:flex;align-items:center;gap:8px;">
+    <h1>Tasks</h1>
+    <span class="subtitle">Kanban board</span>
+  </div>
+  <button class="btn btn-primary" id="new-task-btn">+ New Task</button>
+</div>
+
+<!-- Board -->
+<div id="board">
+  <div class="column" id="col-todo">
+    <div class="column-header">
+      <span class="column-title">TODO</span>
+      <span class="column-count" id="count-todo">0</span>
+    </div>
+    <div class="column-body" id="cards-todo"></div>
+  </div>
+  <div class="column" id="col-in_progress">
+    <div class="column-header">
+      <span class="column-title">IN PROGRESS</span>
+      <span class="column-count" id="count-in_progress">0</span>
+    </div>
+    <div class="column-body" id="cards-in_progress"></div>
+  </div>
+  <div class="column" id="col-review">
+    <div class="column-header">
+      <span class="column-title">REVIEW</span>
+      <span class="column-count" id="count-review">0</span>
+    </div>
+    <div class="column-body" id="cards-review"></div>
+  </div>
+  <div class="column" id="col-done">
+    <div class="column-header">
+      <span class="column-title">DONE</span>
+      <span class="column-count" id="count-done">0</span>
+    </div>
+    <div class="column-body" id="cards-done"></div>
+  </div>
+</div>
+
+<!-- Side Panel -->
+<div id="panel-overlay"></div>
+<div id="panel">
+  <div id="panel-header">
+    <span id="panel-title"></span>
+    <button id="panel-close">✕</button>
+  </div>
+  <div id="panel-body"></div>
+</div>
+
+<!-- New Task Modal -->
+<div id="modal-overlay">
+  <div id="modal">
+    <h2>New Task</h2>
+    <div class="form-field">
+      <label>Title *</label>
+      <input type="text" id="task-title" placeholder="Task title" />
+    </div>
+    <div class="form-field">
+      <label>Description</label>
+      <textarea id="task-description" placeholder="Optional description…"></textarea>
+    </div>
+    <div class="form-field">
+      <label>Assignees *</label>
+      <div class="agent-checkboxes" id="agent-checkboxes">
+        <span style="color:#a3a3a3;font-size:12px;">Loading agents…</span>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="modal-cancel">Cancel</button>
+      <button class="btn btn-primary" id="modal-create">Create Task</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────────────────────────
+  // When served through the NanoFleet proxy, window.location is something like:
+  // https://host/api/plugins/nanofleet-tasks/ui/
+  // All REST calls must go through that same proxy prefix.
+  const BASE = window.location.origin + window.location.pathname.replace(/\/$/, '');
+  let tasks = [];
+  let agents = [];
+  let activePanelTaskId = null;
+  let pollTimer = null;
+
+  // ── Utils ──────────────────────────────────────────────────────────────────
+  function fmt(ts) {
+    const d = new Date(ts);
+    return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+  function initial(name) { return (name || '?')[0].toUpperCase(); }
+  function agentName(agentId) {
+    const a = agents.find(a => a.id === agentId);
+    return a ? a.name : agentId.slice(0, 8);
+  }
+
+  // ── API ────────────────────────────────────────────────────────────────────
+  async function api(method, path, body) {
+    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    if (body !== undefined) opts.body = JSON.stringify(body);
+    const r = await fetch(BASE + path, opts);
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  }
+
+  async function fetchAgents() {
+    try {
+      const data = await api('GET', '/agents');
+      agents = data.agents || [];
+    } catch {}
+  }
+
+  async function fetchTasks() {
+    try {
+      const data = await api('GET', '/tasks');
+      tasks = data.tasks || [];
+      renderBoard();
+      if (activePanelTaskId) {
+        const t = tasks.find(t => t.id === activePanelTaskId);
+        if (t) renderPanelPartial(t);
+      }
+    } catch {}
+  }
+
+  // ── Board Rendering ────────────────────────────────────────────────────────
+  const COLUMNS = ['todo', 'in_progress', 'review', 'done'];
+
+  function renderBoard() {
+    for (const col of COLUMNS) {
+      const colTasks = tasks.filter(t => t.status === col);
+      document.getElementById('count-' + col).textContent = colTasks.length;
+      const container = document.getElementById('cards-' + col);
+      if (colTasks.length === 0) {
+        container.innerHTML = '<div class="empty-col">No tasks</div>';
+      } else {
+        container.innerHTML = colTasks.map(renderCard).join('');
+      }
+    }
+
+    document.querySelectorAll('.card').forEach(el => {
+      el.addEventListener('click', () => openPanel(el.dataset.id));
+    });
+  }
+
+  function renderCard(task) {
+    const assigneeAvatars = (task.assignees || [])
+      .map(id => `<div class="avatar avatar-sm" title="${agentName(id)}">${initial(agentName(id))}</div>`)
+      .join('');
+    return `
+      <div class="card" data-id="${task.id}">
+        <div class="card-title">${escHtml(task.title)}</div>
+        <div class="card-meta">
+          <div class="assignees">${assigneeAvatars}</div>
+          <span class="status-badge status-${task.status}">${statusLabel(task.status)}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function statusLabel(s) {
+    return { todo: 'Todo', in_progress: 'In Progress', review: 'Review', done: 'Done' }[s] || s;
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  // ── Panel ──────────────────────────────────────────────────────────────────
+  async function openPanel(taskId) {
+    activePanelTaskId = taskId;
+    document.getElementById('panel-overlay').classList.add('open');
+    document.getElementById('panel').classList.add('open');
+
+    // Show loading
+    document.getElementById('panel-title').textContent = 'Loading…';
+    document.getElementById('panel-body').innerHTML = '';
+
+    try {
+      const data = await api('GET', '/tasks/' + taskId);
+      renderPanel(data.task);
+    } catch {
+      document.getElementById('panel-body').innerHTML = '<p style="color:#ef4444;padding:16px">Failed to load task.</p>';
+    }
+  }
+
+  function renderPanelPartial(taskSummary) {
+    // Lightweight update from board poll — only update status badge in header if panel is open
+    const badge = document.getElementById('panel-status-badge');
+    if (badge) {
+      badge.className = 'status-badge status-' + taskSummary.status;
+      badge.textContent = statusLabel(taskSummary.status);
+    }
+  }
+
+  function renderPanel(task) {
+    document.getElementById('panel-title').innerHTML =
+      `${escHtml(task.title)} <span id="panel-status-badge" class="status-badge status-${task.status}" style="vertical-align:middle;margin-left:6px">${statusLabel(task.status)}</span>`;
+
+    const assigneeHtml = (task.assignees || []).map(id => `
+      <div class="panel-assignee">
+        <div class="avatar avatar-sm">${initial(agentName(id))}</div>
+        <span class="panel-assignee-name">${escHtml(agentName(id))}</span>
+      </div>
+    `).join('');
+
+    const resultsHtml = (task.results || []).length === 0
+      ? '<p style="font-size:12px;color:#a3a3a3;">No results yet.</p>'
+      : task.results.map(r => `
+          <div class="result-block">
+            <div class="result-block-header">
+              <div class="avatar avatar-sm">${initial(agentName(r.agent_id))}</div>
+              <span class="result-agent-name">${escHtml(agentName(r.agent_id))}</span>
+              <span style="font-size:10px;color:#a3a3a3;margin-left:auto">${fmt(r.created_at)}</span>
+            </div>
+            <div class="result-content">${escHtml(r.content)}</div>
+            ${r.file_path ? `<div class="result-file">📎 ${escHtml(r.file_path)}</div>` : ''}
+          </div>
+        `).join('');
+
+    const commentsHtml = (task.comments || []).map(c => `
+      <div class="comment ${c.content.startsWith('[System]') || c.content.startsWith('[Feedback]') ? 'system' : ''}">
+        <div class="comment-header">
+          <span class="comment-author">${escHtml(c.author_name)}</span>
+          <span class="comment-time">${fmt(c.created_at)}</span>
+        </div>
+        <div class="comment-content">${escHtml(c.content)}</div>
+      </div>
+    `).join('');
+
+    const reviewActionsHtml = task.status === 'review' ? `
+      <div class="review-actions">
+        <div class="review-actions-title">✓ Ready for review</div>
+        <div class="review-btns">
+          <button class="btn btn-success" id="btn-approve">Approve</button>
+          <button class="btn btn-secondary" id="btn-reject-toggle">Request changes</button>
+        </div>
+        <div id="reject-form" style="display:none;flex-direction:column;gap:6px;">
+          <label class="review-feedback-label">Feedback for the agent(s)</label>
+          <input class="review-feedback-input" id="reject-feedback" type="text" placeholder="What needs to be changed?" />
+          <div class="review-btns">
+            <button class="btn btn-danger" id="btn-reject-confirm">Send feedback</button>
+          </div>
+        </div>
+      </div>
+    ` : '';
+
+    document.getElementById('panel-body').innerHTML = `
+      ${task.description ? `
+        <div>
+          <div class="panel-section-label">Description</div>
+          <div class="panel-description">${escHtml(task.description)}</div>
+        </div>
+      ` : ''}
+      <div>
+        <div class="panel-section-label">Assignees</div>
+        <div class="panel-assignees">${assigneeHtml || '<span style="font-size:12px;color:#a3a3a3">No assignees</span>'}</div>
+      </div>
+      <div>
+        <div class="panel-section-label">Results</div>
+        <div style="display:flex;flex-direction:column;gap:8px">${resultsHtml}</div>
+      </div>
+      ${reviewActionsHtml}
+      <div>
+        <div class="panel-section-label">Comments</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          ${commentsHtml || '<p style="font-size:12px;color:#a3a3a3">No comments yet.</p>'}
+        </div>
+      </div>
+      <div>
+        <div class="panel-section-label">Add comment</div>
+        <div class="comment-form">
+          <textarea id="comment-input" placeholder="Write a comment…"></textarea>
+          <div class="comment-form-actions">
+            <button class="btn btn-secondary" id="comment-submit">Post</button>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-danger" id="delete-task-btn" style="margin-top:8px">Delete task</button>
+    `;
+
+    // Approve
+    document.getElementById('btn-approve')?.addEventListener('click', async () => {
+      try {
+        await api('PATCH', '/tasks/' + task.id + '/status', { action: 'approve' });
+        await refreshPanel(task.id);
+        await fetchTasks();
+      } catch (e) { alert('Error: ' + e.message); }
+    });
+
+    // Reject toggle
+    document.getElementById('btn-reject-toggle')?.addEventListener('click', () => {
+      const f = document.getElementById('reject-form');
+      f.style.display = f.style.display === 'none' ? 'flex' : 'none';
+    });
+
+    // Reject confirm
+    document.getElementById('btn-reject-confirm')?.addEventListener('click', async () => {
+      const feedback = document.getElementById('reject-feedback').value.trim();
+      if (!feedback) { alert('Please enter feedback.'); return; }
+      try {
+        await api('PATCH', '/tasks/' + task.id + '/status', { action: 'reject', feedback });
+        await refreshPanel(task.id);
+        await fetchTasks();
+      } catch (e) { alert('Error: ' + e.message); }
+    });
+
+    // Comment submit
+    document.getElementById('comment-submit')?.addEventListener('click', async () => {
+      const content = document.getElementById('comment-input').value.trim();
+      if (!content) return;
+      try {
+        await api('POST', '/tasks/' + task.id + '/comments', { content });
+        await refreshPanel(task.id);
+      } catch (e) { alert('Error: ' + e.message); }
+    });
+
+    // Delete task
+    document.getElementById('delete-task-btn')?.addEventListener('click', async () => {
+      if (!confirm('Delete this task?')) return;
+      try {
+        await api('DELETE', '/tasks/' + task.id);
+        closePanel();
+        await fetchTasks();
+      } catch (e) { alert('Error: ' + e.message); }
+    });
+  }
+
+  async function refreshPanel(taskId) {
+    try {
+      const data = await api('GET', '/tasks/' + taskId);
+      renderPanel(data.task);
+    } catch {}
+  }
+
+  function closePanel() {
+    activePanelTaskId = null;
+    document.getElementById('panel-overlay').classList.remove('open');
+    document.getElementById('panel').classList.remove('open');
+  }
+
+  // ── Modal ──────────────────────────────────────────────────────────────────
+  function openModal() {
+    document.getElementById('task-title').value = '';
+    document.getElementById('task-description').value = '';
+    renderAgentCheckboxes();
+    document.getElementById('modal-overlay').classList.add('open');
+    document.getElementById('task-title').focus();
+  }
+
+  function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('open');
+  }
+
+  function renderAgentCheckboxes() {
+    const container = document.getElementById('agent-checkboxes');
+    if (agents.length === 0) {
+      container.innerHTML = '<span style="color:#a3a3a3;font-size:12px">No running agents found.</span>';
+      return;
+    }
+    container.innerHTML = agents.map(a => `
+      <label class="agent-checkbox">
+        <input type="checkbox" value="${escHtml(a.id)}" />
+        <span>${escHtml(a.name)}</span>
+      </label>
+    `).join('');
+  }
+
+  async function createTask() {
+    const title = document.getElementById('task-title').value.trim();
+    const description = document.getElementById('task-description').value.trim();
+    const assigneeIds = [...document.querySelectorAll('#agent-checkboxes input:checked')].map(el => el.value);
+
+    if (!title) { alert('Title is required.'); return; }
+    if (assigneeIds.length === 0) { alert('Select at least one assignee.'); return; }
+
+    const btn = document.getElementById('modal-create');
+    btn.disabled = true;
+    btn.textContent = 'Creating…';
+
+    try {
+      await api('POST', '/tasks', { title, description: description || undefined, assigneeIds });
+      closeModal();
+      await fetchTasks();
+    } catch (e) {
+      alert('Error: ' + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Create Task';
+    }
+  }
+
+  // ── Wiring ─────────────────────────────────────────────────────────────────
+  document.getElementById('new-task-btn').addEventListener('click', openModal);
+  document.getElementById('modal-cancel').addEventListener('click', closeModal);
+  document.getElementById('modal-create').addEventListener('click', createTask);
+  document.getElementById('panel-close').addEventListener('click', closePanel);
+  document.getElementById('panel-overlay').addEventListener('click', closePanel);
+  document.getElementById('modal-overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('modal-overlay')) closeModal();
+  });
+
+  // ── Boot ───────────────────────────────────────────────────────────────────
+  async function init() {
+    await Promise.all([fetchAgents(), fetchTasks()]);
+    pollTimer = setInterval(fetchTasks, 3000);
+  }
+
+  init();
+</script>
+</body>
+</html>

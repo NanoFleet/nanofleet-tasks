@@ -1,0 +1,17 @@
+{
+  "name": "nanofleet-tasks",
+  "version": "0.0.1",
+  "description": "Kanban task manager for human-agent collaboration",
+  "author": "NanoFleet",
+  "image": "ghcr.io/nanofleet/nanofleet-tasks:latest",
+  "mcpPort": 8821,
+  "uiPort": 8820,
+  "mountShared": true,
+  "requiredEnvVars": [],
+  "sidebar": {
+    "icon": "CheckSquare",
+    "label": "Tasks",
+    "route": "/plugins/nanofleet-tasks/ui"
+  },
+  "toolsDoc": "## nanofleet-tasks — Task Manager\n\nYou may be assigned tasks by the human operator. Use these MCP tools to manage them.\n\n### list_my_tasks\nReturns all tasks assigned to you (all statuses).\n\n### get_task\n- `taskId` (string): get full task details, comments, and previous results.\n\n### update_task_status\n- `taskId` (string)\n- `status` (string): `\"in_progress\"` when you start working, `\"review\"` if you want the human to check without submitting a result.\n\n### post_task_result\nSubmit your result and move the task to review automatically.\n- `taskId` (string)\n- `content` (string): your result text\n- `filePath` (string, optional): path to a file you wrote under /shared/tasks/{taskId}/\n\n## CRITICAL rules\n- When you receive a task assignment message, call `update_task_status(taskId, \"in_progress\")` first.\n- When you are done, call `post_task_result(taskId, yourResult)` — do NOT call `update_task_status(\"review\")` separately, `post_task_result` does it automatically.\n- If you wrote output files, save them to `/shared/tasks/{taskId}/` and pass the path in `filePath`.\n- You cannot set status to `\"done\"` — only the human can approve."
+}
