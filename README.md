@@ -2,6 +2,8 @@
 
 A [NanoFleet](https://github.com/NanoFleet/nanofleet) plugin that provides a Kanban task manager for human-agent collaboration. Create tasks, assign them to agents, review their results, and approve or reject with feedback.
 
+<img width="2830" height="1756" alt="nanofleet-tasks" src="https://github.com/user-attachments/assets/c37c65dc-c0f4-4c4c-b117-80ed8bdfb8e1" />
+
 ## Features
 
 - Kanban board with 4 columns: TODO → IN PROGRESS → REVIEW → DONE
@@ -92,12 +94,4 @@ Install via the NanoFleet Plugins page using the manifest URL:
 
 ```
 https://raw.githubusercontent.com/NanoFleet/nanofleet-tasks/main/manifest.json
-```
-
-## Docker image
-
-Built and pushed automatically to GHCR on every merge to `main`:
-
-```
-ghcr.io/nanofleet/nanofleet-tasks:latest
 ```
