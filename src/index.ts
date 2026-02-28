@@ -3,9 +3,6 @@ import { startRestApi } from './rest-api';
 
 console.log('[nanofleet-tasks] Starting...');
 
-await Promise.all([
-  startMcpServer(),
-  startRestApi(),
-]);
+await Promise.all([startMcpServer(), startRestApi()]);
 
 console.log('[nanofleet-tasks] Ready');
