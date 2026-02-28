@@ -14,8 +14,10 @@ import {
 } from './db';
 
 const NANO_API_URL =
-	process.env.NANO_API_URL ?? 'http://host.docker.internal:3000';
-const NANO_INTERNAL_TOKEN = process.env.NANO_INTERNAL_TOKEN ?? '';
+	process.env.NANO_API_URL ?? 'https://host.docker.internal:3000';
+const NANO_INTERNAL_TOKEN = process.env.NANO_INTERNAL_TOKEN;
+if (!NANO_INTERNAL_TOKEN)
+	throw new Error('NANO_INTERNAL_TOKEN environment variable must be set');
 const FRONTEND_INDEX_PATH =
 	process.env.FRONTEND_INDEX_PATH ??
 	join(process.cwd(), 'src', 'frontend', 'index.html');
@@ -272,10 +274,15 @@ export function createRestApp(): Hono {
 export async function startRestApi(): Promise<void> {
 	const app = createRestApp();
 
+	const port =
+		(process.env.REST_API_PORT &&
+			Number.parseInt(process.env.REST_API_PORT, 10)) ||
+		8820;
+
 	Bun.serve({
-		port: 8820,
+		port,
 		fetch: app.fetch,
 	});
 
-	console.log('[REST] Server listening on :8820');
+	console.log(`[REST] Server listening on :${port}`);
 }
