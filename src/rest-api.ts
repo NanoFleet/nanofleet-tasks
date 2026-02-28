@@ -274,10 +274,15 @@ export function createRestApp(): Hono {
 export async function startRestApi(): Promise<void> {
 	const app = createRestApp();
 
+	const envPort = process.env.REST_API_PORT;
+	const parsedPort =
+		envPort !== undefined ? Number.parseInt(envPort, 10) : undefined;
 	const port =
-		(process.env.REST_API_PORT &&
-			Number.parseInt(process.env.REST_API_PORT, 10)) ||
-		8820;
+		typeof parsedPort === 'number' &&
+		Number.isInteger(parsedPort) &&
+		parsedPort >= 0
+			? parsedPort
+			: 8820;
 
 	Bun.serve({
 		port,
