@@ -13,6 +13,10 @@ import {
 	updateTaskStatus,
 } from './db';
 
+interface Agent {
+	status: string;
+}
+
 const NANO_API_URL =
 	process.env.NANO_API_URL ?? 'https://host.docker.internal:3000';
 const NANO_INTERNAL_TOKEN = process.env.NANO_INTERNAL_TOKEN;
@@ -130,14 +134,10 @@ export function createRestApp(): Hono {
 				signal: AbortSignal.timeout(5000),
 			});
 			if (!res.ok) return c.json({ error: 'Failed to fetch agents' }, 502);
-			interface Agent {
-				status: string;
-			}
 			const data = (await res.json()) as { agents: unknown };
-			const agents: Agent[] = Array.isArray(
-				(data as { agents: unknown[] }).agents,
-			)
-				? (data as { agents: unknown[] }).agents.filter(
+			const agentsData = (data as { agents: unknown[] }).agents;
+			const agents: Agent[] = Array.isArray(agentsData)
+				? (agentsData as unknown[]).filter(
 						(a): a is Agent =>
 							typeof a === 'object' &&
 							a !== null &&
