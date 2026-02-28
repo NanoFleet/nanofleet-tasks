@@ -17,10 +17,20 @@ interface NanoAgentStatus {
 	status: string;
 }
 
+function isAgentStatusOnly(value: unknown): value is AgentStatusOnly {
+	return (
+		typeof value === 'object' &&
+		value !== null &&
+		typeof (value as { status?: unknown }).status === 'string'
+	);
+}
+
 // For the /agents endpoint we only rely on the status field.
 // Using a narrower type here ensures our runtime validation
 // remains complete even if NanoAgentStatus is extended in the future.
 type AgentStatusOnly = Pick<NanoAgentStatus, 'status'>;
+
+const FETCH_TIMEOUT_MS = 5000;
 
 const NANO_API_URL =
 	process.env.NANO_API_URL ?? 'https://host.docker.internal:3000';
@@ -30,6 +40,15 @@ if (!NANO_INTERNAL_TOKEN)
 const FRONTEND_INDEX_PATH =
 	process.env.FRONTEND_INDEX_PATH ??
 	join(process.cwd(), 'src', 'frontend', 'index.html');
+
+function parsePort(value: string | undefined): number | undefined {
+	if (value === undefined) return undefined;
+
+	const parsed = Number.parseInt(value, 10);
+	if (Number.isNaN(parsed)) return undefined;
+
+	return parsed >= 1 && parsed <= 65535 ? parsed : undefined;
+}
 
 function nanoHeaders() {
 	return {
@@ -48,7 +67,7 @@ async function pushToAgent(agentId: string, content: string): Promise<void> {
 			method: 'POST',
 			headers: nanoHeaders(),
 			body: JSON.stringify({ content }),
-			signal: AbortSignal.timeout(5000),
+			signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
 		});
 	} catch (err) {
 		console.warn(`[tasks] Failed to push to agent ${agentId}:`, err);
@@ -136,18 +155,13 @@ export function createRestApp(): Hono {
 		try {
 			const res = await fetch(`${NANO_API_URL}/internal/agents`, {
 				headers: nanoHeaders(),
-				signal: AbortSignal.timeout(5000),
+				signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
 			});
 			if (!res.ok) return c.json({ error: 'Failed to fetch agents' }, 502);
 			const data = (await res.json()) as { agents: unknown };
 			const agentsData = data.agents;
 			const agents: AgentStatusOnly[] = Array.isArray(agentsData)
-				? (agentsData as unknown[]).filter(
-						(a): a is AgentStatusOnly =>
-							typeof a === 'object' &&
-							a !== null &&
-							typeof (a as { status?: unknown }).status === 'string',
-					)
+				? (agentsData as unknown[]).filter(isAgentStatusOnly)
 				: [];
 			const running = agents.filter((a) => a.status === 'running');
 			return c.json({ agents: running });
@@ -172,7 +186,7 @@ export function createRestApp(): Hono {
 		}
 
 		const { title, description, assigneeIds } = body;
-		if (!title || !assigneeIds || assigneeIds.length === 0) {
+		if (!title || !Array.isArray(assigneeIds) || assigneeIds.length === 0) {
 			return c.json(
 				{ error: 'title and at least one assigneeId are required' },
 				400,
@@ -279,18 +293,7 @@ export function createRestApp(): Hono {
 export async function startRestApi(): Promise<void> {
 	const app = createRestApp();
 
-	const envPort = process.env.REST_API_PORT;
-
-	const parsePort = (value: string | undefined): number | undefined => {
-		if (value === undefined) return undefined;
-
-		const parsed = Number.parseInt(value, 10);
-		if (Number.isNaN(parsed)) return undefined;
-
-		return parsed >= 1 && parsed <= 65535 ? parsed : undefined;
-	};
-
-	const port = parsePort(envPort) ?? 8820;
+	const port = parsePort(process.env.REST_API_PORT) ?? 8820;
 
 	Bun.serve({
 		port,
