@@ -83,7 +83,7 @@ async function notifyRejection(
 // Build enriched task list
 // ---------------------------------------------------------------------------
 
-async function buildTaskList() {
+function buildTaskList() {
 	const tasks = listTasks();
 	return tasks.map((task) => {
 		const assignees = getTaskAssignees(task.id);
@@ -93,7 +93,7 @@ async function buildTaskList() {
 	});
 }
 
-async function buildTaskDetail(taskId: string) {
+function buildTaskDetail(taskId: string) {
 	const task = getTask(taskId);
 	if (!task) return null;
 	const assignees = getTaskAssignees(taskId);
@@ -135,8 +135,8 @@ export function createRestApp(): Hono {
 	});
 
 	// GET /tasks — list all tasks
-	app.get('/tasks', async (c) => {
-		const tasks = await buildTaskList();
+	app.get('/tasks', (c) => {
+		const tasks = buildTaskList();
 		return c.json({ tasks });
 	});
 
@@ -161,15 +161,17 @@ export function createRestApp(): Hono {
 
 		// Fire-and-forget push to assignees
 		notifyAssignees(task.id, assigneeIds, task.title, task.description).catch(
-			() => {},
+			(error) => {
+				console.warn('Failed to notify assignees for task', task.id, error);
+			},
 		);
 
 		return c.json({ task }, 201);
 	});
 
 	// GET /tasks/:id — task detail
-	app.get('/tasks/:id', async (c) => {
-		const detail = await buildTaskDetail(c.req.param('id'));
+	app.get('/tasks/:id', (c) => {
+		const detail = buildTaskDetail(c.req.param('id'));
 		if (!detail) return c.json({ error: 'Task not found' }, 404);
 		return c.json({ task: detail });
 	});
@@ -209,10 +211,14 @@ export function createRestApp(): Hono {
 
 			// Notify assignees
 			const assignees = getTaskAssignees(taskId);
-			notifyRejection(taskId, assignees, task.title, feedback).catch(() => {});
+			notifyRejection(taskId, assignees, task.title, feedback).catch(
+				(error) => {
+					console.warn('Failed to notify assignees for task', taskId, error);
+				},
+			);
 		}
 
-		const updated = await buildTaskDetail(taskId);
+		const updated = buildTaskDetail(taskId);
 		return c.json({ task: updated });
 	});
 
