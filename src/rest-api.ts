@@ -135,7 +135,7 @@ export function createRestApp(): Hono {
 			});
 			if (!res.ok) return c.json({ error: 'Failed to fetch agents' }, 502);
 			const data = (await res.json()) as { agents: unknown };
-			const agentsData = (data as { agents: unknown }).agents;
+			const agentsData = data.agents;
 			const agents: Agent[] = Array.isArray(agentsData)
 				? (agentsData as unknown[]).filter(
 						(a): a is Agent =>
@@ -275,16 +275,17 @@ export async function startRestApi(): Promise<void> {
 	const app = createRestApp();
 
 	const envPort = process.env.REST_API_PORT;
-	const parsedPort =
-		envPort !== undefined ? Number.parseInt(envPort, 10) : undefined;
-	const port =
-		parsedPort !== undefined &&
-		!Number.isNaN(parsedPort) &&
-		Number.isInteger(parsedPort) &&
-		parsedPort >= 1 &&
-		parsedPort <= 65535
-			? parsedPort
-			: 8820;
+
+	const parsePort = (value: string | undefined): number | undefined => {
+		if (value === undefined) return undefined;
+
+		const parsed = Number.parseInt(value, 10);
+		if (Number.isNaN(parsed)) return undefined;
+
+		return parsed >= 1 && parsed <= 65535 ? parsed : undefined;
+	};
+
+	const port = parsePort(envPort) ?? 8820;
 
 	Bun.serve({
 		port,
