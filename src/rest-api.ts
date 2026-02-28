@@ -1,3 +1,4 @@
+import { join } from 'node:path';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import {
@@ -15,6 +16,9 @@ import {
 const NANO_API_URL =
 	process.env.NANO_API_URL ?? 'http://host.docker.internal:3000';
 const NANO_INTERNAL_TOKEN = process.env.NANO_INTERNAL_TOKEN ?? '';
+const FRONTEND_INDEX_PATH =
+	process.env.FRONTEND_INDEX_PATH ??
+	join(process.cwd(), 'src', 'frontend', 'index.html');
 
 function nanoHeaders() {
 	return {
@@ -112,7 +116,7 @@ export function createRestApp(): Hono {
 
 	// Serve frontend
 	app.get('/', (_c) => {
-		const html = Bun.file('/app/src/frontend/index.html');
+		const html = Bun.file(FRONTEND_INDEX_PATH);
 		return new Response(html, { headers: { 'Content-Type': 'text/html' } });
 	});
 
@@ -124,10 +128,21 @@ export function createRestApp(): Hono {
 				signal: AbortSignal.timeout(5000),
 			});
 			if (!res.ok) return c.json({ error: 'Failed to fetch agents' }, 502);
-			const data = (await res.json()) as { agents: unknown[] };
-			const running = (data.agents as Array<{ status: string }>).filter(
-				(a) => a.status === 'running',
-			);
+			interface Agent {
+				status: string;
+			}
+			const data = (await res.json()) as { agents: unknown };
+			const agents: Agent[] = Array.isArray(
+				(data as { agents: unknown[] }).agents,
+			)
+				? (data as { agents: unknown[] }).agents.filter(
+						(a): a is Agent =>
+							typeof a === 'object' &&
+							a !== null &&
+							typeof (a as { status?: unknown }).status === 'string',
+					)
+				: [];
+			const running = agents.filter((a) => a.status === 'running');
 			return c.json({ agents: running });
 		} catch (err) {
 			return c.json({ error: String(err) }, 500);
