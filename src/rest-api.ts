@@ -13,9 +13,14 @@ import {
 	updateTaskStatus,
 } from './db';
 
-interface Agent {
+interface NanoAgentStatus {
 	status: string;
 }
+
+// For the /agents endpoint we only rely on the status field.
+// Using a narrower type here ensures our runtime validation
+// remains complete even if NanoAgentStatus is extended in the future.
+type AgentStatusOnly = Pick<NanoAgentStatus, 'status'>;
 
 const NANO_API_URL =
 	process.env.NANO_API_URL ?? 'https://host.docker.internal:3000';
@@ -136,9 +141,9 @@ export function createRestApp(): Hono {
 			if (!res.ok) return c.json({ error: 'Failed to fetch agents' }, 502);
 			const data = (await res.json()) as { agents: unknown };
 			const agentsData = data.agents;
-			const agents: Agent[] = Array.isArray(agentsData)
+			const agents: AgentStatusOnly[] = Array.isArray(agentsData)
 				? (agentsData as unknown[]).filter(
-						(a): a is Agent =>
+						(a): a is AgentStatusOnly =>
 							typeof a === 'object' &&
 							a !== null &&
 							typeof (a as { status?: unknown }).status === 'string',
