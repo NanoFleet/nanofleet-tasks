@@ -161,7 +161,9 @@ export function createRestApp(): Hono {
 
 		// Fire-and-forget push to assignees
 		notifyAssignees(task.id, assigneeIds, task.title, task.description).catch(
-			(error) => { console.warn('Failed to notify assignees for task', task.id, error); },
+			(error) => {
+				console.warn('Failed to notify assignees for task', task.id, error);
+			},
 		);
 
 		return c.json({ task }, 201);
@@ -210,7 +212,9 @@ export function createRestApp(): Hono {
 			// Notify assignees
 			const assignees = getTaskAssignees(taskId);
 			notifyRejection(taskId, assignees, task.title, feedback).catch(
-				(error) => { console.warn('Failed to notify assignees for task', taskId, error); },
+				(error) => {
+					console.warn('Failed to notify assignees for task', taskId, error);
+				},
 			);
 		}
 
