@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "bun run --hot src/index.ts",
-    "start": "bun run src/index.ts"
+    "start": "bun run src/index.ts",
+    "lint": "biome check ."
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
@@ -12,6 +13,7 @@
     "hono": "^4.0.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.4.4",
     "@types/bun": "latest"
   }
 }
