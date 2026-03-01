@@ -9,6 +9,9 @@ COPY . .
 
 RUN mkdir -p /data /shared
 
+ARG VERSION=dev
+LABEL com.nanofleet.version=${VERSION}
+
 ENV NODE_ENV=production
 
 EXPOSE 8820 8821
