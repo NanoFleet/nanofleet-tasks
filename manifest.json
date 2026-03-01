@@ -1,6 +1,5 @@
 {
   "name": "nanofleet-tasks",
-  "version": "0.0.1",
   "description": "Kanban task manager for human-agent collaboration",
   "author": "NanoFleet",
   "image": "ghcr.io/nanofleet/nanofleet-tasks:latest",
