@@ -12,6 +12,9 @@
     "drizzle-orm": "^0.36.0",
     "hono": "^4.12.5"
   },
+  "overrides": {
+    "hono": "^4.12.5"
+  },
   "devDependencies": {
     "@biomejs/biome": "2.4.4",
     "@types/bun": "latest"
